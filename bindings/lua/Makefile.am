@@ -1,10 +1,10 @@
 INCLUDES=@INCLUDES@
 
-lib_LTLIBRARIES=
+lib_LTLIBRARIES= 
 TESTS=
 
 if BUILD_LUA
-lib_LTLIBRARIES += sigar.la
+lib_LTLIBRARIES += sigar.la 
 
 sigar_la_SOURCES =\
 	sigar.c \
@@ -21,7 +21,7 @@ sigar_la_SOURCES =\
 
 sigar_la_CPPFLAGS = ${LUA_CFLAGS}
 sigar_la_LDFLAGS  = $(AM_LDFLAGS) -module -avoid-version
-sigar_la_LIBADD  = $(top_builddir)/src/libsigar.la
+sigar_la_LIBADD  = $(top_builddir)/src/libsigar.la @LIBTIRPC_LIBS@
 
 TESTS += \
 	sigar-test.lua

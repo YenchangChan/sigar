@@ -2,11 +2,11 @@ SUBDIRS = os
 
 INCLUDES = @INCLUDES@
 
-lib_LTLIBRARIES = libsigar.la
+lib_LTLIBRARIES = libsigar.la 
 
 libsigar_la_LDFLAGS = $(SIGAR_LIBS)
 
-libsigar_la_LIBADD = $(top_builddir)/src/os/@SRC_OS@/libsigar_os.la
+libsigar_la_LIBADD = $(top_builddir)/src/os/@SRC_OS@/libsigar_os.la @LIBTIRPC_LIBS@
 
 libsigar_la_CFLAGS = -I$(top_srcdir)/include
 

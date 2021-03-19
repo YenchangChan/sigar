@@ -1,7 +1,7 @@
 dnl ... hmm ... we have to duplicate the data below again
 AC_INIT(libsigar, 1.6.2)
 AC_CONFIG_SRCDIR(src/sigar.c)
-dnl AC_CONFIG_HEADERS(src/config.h)
+AC_CONFIG_HEADERS(src/config.h)
 AM_INIT_AUTOMAKE([foreign])
 AC_CANONICAL_HOST
 
@@ -78,7 +78,12 @@ if test $ac_cv_header_libproc_h = yes; then
         AC_DEFINE(DARWIN_HAS_LIBPROC_H, [1], [sigar named them DARWIN_HAS_... instead of HAVE_])
 fi
 
-INCLUDES="-I\$(top_srcdir)/include -I\$(top_srcdir)/src/os/$SRC_OS $SIGAR_INCLUDES"
+LIBTIRPC_CFALGS=`pkg-config --cflags libtirpc`
+LIBTIRPC_LIBS=`pkg-config --libs libtirpc`
+AC_SUBST(LIBTIRPC_CFALGS)
+AC_SUBST(LIBTIRPC_LIBS)
+
+INCLUDES="-I\$(top_srcdir)/include -I\$(top_srcdir)/src/os/$SRC_OS $SIGAR_INCLUDES $LIBTIRPC_CFALGS"
 
 AC_SUBST(SRC_OS)
 AC_SUBST(INCLUDES)

@@ -1527,6 +1527,52 @@ static SIGAR_INLINE void cpu_info_strcpy(char *ptr, char *buf, int len)
     }
 }
 
+static int get_cpu_info_aarch64(sigar_t *sigar, sigar_cpu_info_t *info,
+                                FILE *fp)
+{
+    char buffer[BUFSIZ], *ptr;
+
+    int found = 0;
+
+    /* UML vm wont have "cpu MHz" or "cache size" fields */
+    info->mhz = 0;
+    info->cache_size = 0;
+
+    memset(info->vendor, 0x00, sizeof(info->vendor));
+    memset(info->model, 0x00, sizeof(info->model));
+    SIGAR_SSTRCPY(info->model, "ARMv8");
+
+    while ((ptr = fgets(buffer, sizeof(buffer), fp)))
+    {
+        switch (*ptr)
+        {
+        case 'p': /* processor	: 0 */
+            if (strnEQ(ptr, "processor", 9))
+            {
+                found = 1;
+            }
+            break;
+        case 'b': /* BogoMIPS */
+            if (strnEQ(ptr, "BogoMIPS", 8))
+            {
+                ptr = cpu_info_strval(ptr);
+                info->mhz = atoi(ptr);
+            }
+            break;
+        case 'h': /* Hardware */
+            if (strnEQ(ptr, "Hardware", 8))
+            {
+                cpu_info_strcpy(ptr, info->vendor, sizeof(info->vendor));
+            }
+            break;
+        case '\n':
+            return found;
+        }
+    }
+
+    return found;
+}
+
 static int get_cpu_info(sigar_t *sigar, sigar_cpu_info_t *info,
                         FILE *fp)
 {
@@ -1659,7 +1705,13 @@ int sigar_cpu_info_list_get(sigar_t *sigar,
     (void)sigar_cpu_total_count(sigar);
     sigar_cpu_info_list_create(cpu_infos);
 
-    while (get_cpu_info(sigar, &cpu_infos->data[cpu_infos->number], fp)) {
+#ifdef __aarch64__
+    while (get_cpu_info_aarch64(sigar, &cpu_infos->data[cpu_infos->number], fp))
+    {
+#else
+    while (get_cpu_info(sigar, &cpu_infos->data[cpu_infos->number], fp))
+    {
+#endif
         sigar_cpu_info_t *info;
 
         if (core_rollup && (i++ % sigar->lcpu)) {
