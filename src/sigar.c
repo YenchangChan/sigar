@@ -1487,13 +1487,33 @@ int sigar_resource_limit_get(sigar_t *sigar,
 
 #if defined(_AIX) || defined(__osf__) /* good buddies */
 
-#include <net/if_dl.h>
+#include <sys/ndd_var.h>
+#include <sys/kinfo.h>
 
 static void hwaddr_aix_lookup(sigar_t *sigar, sigar_net_interface_config_t *ifconfig)
 {
     char *ent, *end;
     struct ifreq *ifr;
+    size_t ksize;
+    struct kinfo_ndd *ndd = NULL;
+    int count, i;
 
+    ksize = getkerninfo(KINFO_NDD, 0, 0, 0);
+    if (ksize == 0)
+    {
+        goto EXIT;
+    }
+
+    ndd = (struct kinfo_ndd *)malloc(ksize);
+    if (ndd == NULL)
+    {
+        goto EXIT;
+    }
+
+    if (getkerninfo(KINFO_NDD, ndd, &ksize, 0) == -1)
+    {
+        goto EXIT;
+    }
     /* XXX: assumes sigar_net_interface_list_get has been called */
     end = sigar->ifconf_buf + sigar->ifconf_len;
 
@@ -1508,15 +1528,30 @@ static void hwaddr_aix_lookup(sigar_t *sigar, sigar_net_interface_config_t *ifco
         }
 
         if (strEQ(ifr->ifr_name, ifconfig->name)) {
-            struct sockaddr_dl *sdl = (struct sockaddr_dl *)&ifr->ifr_addr;
-
-            sigar_net_address_mac_set(ifconfig->hwaddr,
-                                      LLADDR(sdl),
-                                      sdl->sdl_alen);
-            return;
+            count = ksize / sizeof(struct kinfo_ndd);
+            for (i = 0; i < count; i++)
+            {
+                if ((ndd[i].ndd_type == NDD_ETHER ||
+                     ndd[i].ndd_type == NDD_ISO88023) &&
+                    ndd[i].ndd_addrlen == 6 &&
+                    (strcmp(ndd[i].ndd_alias, ifconfig->name) == 0 ||
+                     strcmp(ndd[i].ndd_name, ifconfig->name == 0)))
+                {
+                    sigar_net_address_mac_set(ifconfig->hwaddr,
+                                              ndd[i].ndd_addr,
+                                              6);
+                    free(ndd);
+                    return;
+                }
+            }
+            break;
         }
     }
 
+EXIT:
+    if (ndd != NULL){
+        free(ndd);
+    }
     sigar_hwaddr_set_null(ifconfig);
 }
 
